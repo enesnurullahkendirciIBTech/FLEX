@@ -140,6 +140,83 @@ typedef UIViewController *(^FLEXNetworkDetailRowSelectionFuture)(void);
     [UIPasteboard.generalPasteboard setString:[FLEXNetworkCurlLogger curlCommandString:_transaction.request]];
 }
 
+- (BOOL)isURLEncodedString:(NSString *)string {
+    if (string.length == 0) {
+        return NO;
+    }
+    
+    // Check if string contains & and = characters (typical URL-encoded format)
+    if ([string containsString:@"="] && [string containsString:@"&"]) {
+        // Must have at least 2 parameters
+        NSArray *components = [string componentsSeparatedByString:@"&"];
+        if (components.count >= 2) {
+            // Check if each component has key=value format
+            for (NSString *component in components) {
+                if (![component containsString:@"="]) {
+                    return NO;
+                }
+            }
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+- (NSString *)prettyPrintedURLEncodedString:(NSString *)string {
+    NSMutableString *result = [NSMutableString string];
+    NSArray *parameters = [string componentsSeparatedByString:@"&"];
+    
+    for (NSString *param in parameters) {
+        NSRange equalRange = [param rangeOfString:@"="];
+        if (equalRange.location != NSNotFound) {
+            NSString *key = [param substringToIndex:equalRange.location];
+            NSString *value = [param substringFromIndex:equalRange.location + 1];
+            
+            // URL decode
+            key = [key stringByRemovingPercentEncoding] ?: key;
+            value = [value stringByRemovingPercentEncoding] ?: value;
+            
+            [result appendFormat:@"%@=%@\n", key, value];
+        }
+    }
+    
+    return result;
+}
+
+- (NSString *)prettyPrintedStringFromData:(NSData *)data {
+    if (!data || data.length == 0) {
+        return nil;
+    }
+    
+    NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    if (!string) {
+        return nil;
+    }
+    
+    // Try to parse as JSON
+    NSError *error = nil;
+    id jsonObject = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+    
+    if (jsonObject && !error) {
+        // Pretty print JSON
+        NSData *prettyData = [NSJSONSerialization dataWithJSONObject:jsonObject
+                                                             options:NSJSONWritingPrettyPrinted
+                                                               error:nil];
+        if (prettyData) {
+            return [[NSString alloc] initWithData:prettyData encoding:NSUTF8StringEncoding];
+        }
+    }
+    
+    // Try to parse as URL-encoded form data
+    if ([self isURLEncodedString:string]) {
+        return [self prettyPrintedURLEncodedString:string];
+    }
+    
+    // Not JSON or URL-encoded, return original string
+    return string;
+}
+
 - (void)shareButtonPressed:(UIBarButtonItem *)sender {
     NSMutableString *shareText = [NSMutableString string];
     
@@ -160,7 +237,7 @@ typedef UIViewController *(^FLEXNetworkDetailRowSelectionFuture)(void);
     NSData *requestBodyData = _transaction.cachedRequestBody;
     if (requestBodyData.length > 0) {
         [shareText appendString:@"\nRequest Body:\n"];
-        NSString *requestBody = [[NSString alloc] initWithData:requestBodyData encoding:NSUTF8StringEncoding];
+        NSString *requestBody = [self prettyPrintedStringFromData:requestBodyData];
         if (requestBody) {
             [shareText appendString:requestBody];
             [shareText appendString:@"\n"];
@@ -189,7 +266,7 @@ typedef UIViewController *(^FLEXNetworkDetailRowSelectionFuture)(void);
     NSData *responseBodyData = [FLEXNetworkRecorder.defaultRecorder cachedResponseBodyForTransaction:_transaction];
     if (responseBodyData.length > 0) {
         [shareText appendString:@"\nResponse Body:\n"];
-        NSString *responseBody = [[NSString alloc] initWithData:responseBodyData encoding:NSUTF8StringEncoding];
+        NSString *responseBody = [self prettyPrintedStringFromData:responseBodyData];
         if (responseBody) {
             [shareText appendString:responseBody];
             [shareText appendString:@"\n"];
