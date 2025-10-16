@@ -230,7 +230,7 @@ CGFloat const kFLEXDebounceForExpensiveIO = 0.5;
     
     // Toolbar
     self.navigationController.toolbarHidden = self.toolbarItems.count > 0;
-    self.navigationController.hidesBarsOnSwipe = YES;
+    self.navigationController.hidesBarsOnSwipe = NO;
 
     // On iOS 13, the root view controller shows it's search bar no matter what.
     // Turning this off avoids some weird flash the navigation bar does when we
