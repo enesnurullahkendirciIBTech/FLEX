@@ -95,36 +95,64 @@
 - (void)layoutSubviews {
     [super layoutSubviews];
 
-
     CGRect safeArea = [self safeArea];
-    // Drag Handle
     const CGFloat kToolbarItemHeight = [[self class] toolbarItemHeight];
-    self.dragHandle.frame = CGRectMake(CGRectGetMinX(safeArea), CGRectGetMinY(safeArea), [[self class] dragHandleWidth], kToolbarItemHeight);
+    const CGFloat dragHandleWidth = [[self class] dragHandleWidth];
+    
+    // Determine if toolbar is on the right side of the screen
+    BOOL isOnRightSide = NO;
+    if (self.superview) {
+        CGFloat toolbarCenterX = CGRectGetMidX(self.frame);
+        CGFloat superviewCenterX = CGRectGetMidX(self.superview.bounds);
+        isOnRightSide = toolbarCenterX > superviewCenterX;
+    }
+    
+    // Drag Handle
+    CGFloat dragHandleX = isOnRightSide ? (CGRectGetMaxX(safeArea) - dragHandleWidth) : CGRectGetMinX(safeArea);
+    self.dragHandle.frame = CGRectMake(dragHandleX, CGRectGetMinY(safeArea), dragHandleWidth, kToolbarItemHeight);
     CGRect dragHandleImageFrame = self.dragHandleImageView.frame;
     dragHandleImageFrame.origin.x = FLEXFloor((self.dragHandle.frame.size.width - dragHandleImageFrame.size.width) / 2.0);
     dragHandleImageFrame.origin.y = FLEXFloor((self.dragHandle.frame.size.height - dragHandleImageFrame.size.height) / 2.0);
     self.dragHandleImageView.frame = dragHandleImageFrame;
     
-    
     // Toolbar Items
-    CGFloat originX = CGRectGetMaxX(self.dragHandle.frame);
     CGFloat originY = CGRectGetMinY(safeArea);
     CGFloat height = kToolbarItemHeight;
     
     if (self.expanded) {
         // Show all items equally distributed
-        CGFloat width = FLEXFloor((CGRectGetWidth(safeArea) - CGRectGetWidth(self.dragHandle.frame)) / self.toolbarItems.count);
-        for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
-            toolbarItem.currentItem.hidden = NO;
-            toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
-            originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
-        }
+        CGFloat totalItemsWidth = CGRectGetWidth(safeArea) - dragHandleWidth;
+        CGFloat width = FLEXFloor(totalItemsWidth / self.toolbarItems.count);
         
-        // Make sure the last toolbar item goes to the edge to account for any accumulated rounding effects.
-        UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
-        CGRect lastToolbarItemFrame = lastToolbarItem.frame;
-        lastToolbarItemFrame.size.width = CGRectGetMaxX(safeArea) - lastToolbarItemFrame.origin.x;
-        lastToolbarItem.frame = lastToolbarItemFrame;
+        if (isOnRightSide) {
+            // Right side: items go from right to left
+            CGFloat originX = CGRectGetMinX(safeArea);
+            for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
+                toolbarItem.currentItem.hidden = NO;
+                toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
+                originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
+            }
+            
+            // Adjust last item to end at drag handle
+            UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
+            CGRect lastToolbarItemFrame = lastToolbarItem.frame;
+            lastToolbarItemFrame.size.width = dragHandleX - lastToolbarItemFrame.origin.x;
+            lastToolbarItem.frame = lastToolbarItemFrame;
+        } else {
+            // Left side: items go from left to right (original behavior)
+            CGFloat originX = CGRectGetMaxX(self.dragHandle.frame);
+            for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
+                toolbarItem.currentItem.hidden = NO;
+                toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
+                originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
+            }
+            
+            // Adjust last item to reach the edge
+            UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
+            CGRect lastToolbarItemFrame = lastToolbarItem.frame;
+            lastToolbarItemFrame.size.width = CGRectGetMaxX(safeArea) - lastToolbarItemFrame.origin.x;
+            lastToolbarItem.frame = lastToolbarItemFrame;
+        }
     } else {
         // Collapsed state - hide all items, only show drag handle
         for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
@@ -133,8 +161,9 @@
     }
 
     // Background should match the actual toolbar width
-    CGFloat backgroundWidth = self.expanded ? CGRectGetWidth(self.bounds) : CGRectGetWidth(self.dragHandle.frame);
-    self.backgroundView.frame = CGRectMake(0, 0, backgroundWidth, kToolbarItemHeight);
+    CGFloat backgroundWidth = self.expanded ? CGRectGetWidth(self.bounds) : dragHandleWidth;
+    CGFloat backgroundX = isOnRightSide ? (CGRectGetWidth(self.bounds) - backgroundWidth) : 0;
+    self.backgroundView.frame = CGRectMake(backgroundX, 0, backgroundWidth, kToolbarItemHeight);
     
     const CGFloat kSelectedViewColorDiameter = [[self class] selectedViewColorIndicatorDiameter];
     const CGFloat kDescriptionLabelHeight = [[self class] descriptionLabelHeight];
@@ -143,9 +172,10 @@
     const CGFloat kDescriptionContainerHeight = [[self class] descriptionContainerHeight];
     
     CGRect descriptionContainerFrame = CGRectZero;
-    descriptionContainerFrame.size.width = self.expanded ? CGRectGetWidth(self.bounds) : backgroundWidth;
+    CGFloat descriptionWidth = self.expanded ? CGRectGetWidth(self.bounds) : backgroundWidth;
+    descriptionContainerFrame.size.width = descriptionWidth;
     descriptionContainerFrame.size.height = kDescriptionContainerHeight;
-    descriptionContainerFrame.origin.x = CGRectGetMinX(self.bounds);
+    descriptionContainerFrame.origin.x = isOnRightSide ? (CGRectGetWidth(self.bounds) - descriptionWidth) : CGRectGetMinX(self.bounds);
     descriptionContainerFrame.origin.y = CGRectGetMaxY(self.bounds) - kDescriptionContainerHeight;
     self.selectedViewDescriptionContainer.frame = descriptionContainerFrame;
 
@@ -153,7 +183,7 @@
     CGFloat safeAreaWidth = self.expanded ? CGRectGetWidth(safeArea) : MIN(CGRectGetWidth(safeArea), backgroundWidth);
     descriptionSafeAreaContainerFrame.size.width = safeAreaWidth;
     descriptionSafeAreaContainerFrame.size.height = kDescriptionContainerHeight;
-    descriptionSafeAreaContainerFrame.origin.x = CGRectGetMinX(safeArea);
+    descriptionSafeAreaContainerFrame.origin.x = isOnRightSide ? (CGRectGetMaxX(safeArea) - safeAreaWidth) : CGRectGetMinX(safeArea);
     descriptionSafeAreaContainerFrame.origin.y = CGRectGetMinY(safeArea);
     self.selectedViewDescriptionSafeAreaContainer.frame = descriptionSafeAreaContainerFrame;
 
@@ -313,15 +343,31 @@
     // Calculate new size
     CGSize newSize = [self sizeThatFits:self.superview.bounds.size];
     
+    // Determine if toolbar is on the right side
+    BOOL isOnRightSide = NO;
+    if (self.superview) {
+        CGFloat toolbarCenterX = CGRectGetMidX(self.frame);
+        CGFloat superviewCenterX = CGRectGetMidX(self.superview.bounds);
+        isOnRightSide = toolbarCenterX > superviewCenterX;
+    }
+    
     [UIView animateWithDuration:0.3
                           delay:0.0
          usingSpringWithDamping:0.8
           initialSpringVelocity:0.5
                         options:UIViewAnimationOptionCurveEaseInOut
                      animations:^{
-        // Update frame with new width
         CGRect newFrame = self.frame;
+        CGFloat widthDifference = newSize.width - newFrame.size.width;
+        
+        // Update width
         newFrame.size.width = newSize.width;
+        
+        // If on right side, adjust origin.x to keep right edge fixed
+        if (isOnRightSide) {
+            newFrame.origin.x -= widthDifference;
+        }
+        
         self.frame = newFrame;
         
         [self setNeedsLayout];

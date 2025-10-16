@@ -525,8 +525,12 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
             break;
             
         case UIGestureRecognizerStateChanged:
+            [self updateToolbarPositionWithDragGesture:panGR];
+            break;
+            
         case UIGestureRecognizerStateEnded:
             [self updateToolbarPositionWithDragGesture:panGR];
+            [self snapToolbarToNearestEdge];
             break;
             
         default:
@@ -537,6 +541,7 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
 - (void)updateToolbarPositionWithDragGesture:(UIPanGestureRecognizer *)panGR {
     CGPoint translation = [panGR translationInView:self.view];
     CGRect newToolbarFrame = self.toolbarFrameBeforeDragging;
+    newToolbarFrame.origin.x += translation.x;
     newToolbarFrame.origin.y += translation.y;
     
     [self updateToolbarPositionWithUnconstrainedFrame:newToolbarFrame];
@@ -544,8 +549,8 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
 
 - (void)updateToolbarPositionWithUnconstrainedFrame:(CGRect)unconstrainedFrame {
     CGRect safeArea = [self viewSafeArea];
-    // We only constrain the Y-axis because we want the toolbar
-    // to handle the X-axis safeArea layout by itself
+    
+    // Constrain Y-axis
     CGFloat minY = CGRectGetMinY(safeArea);
     CGFloat maxY = CGRectGetMaxY(safeArea) - unconstrainedFrame.size.height;
     if (unconstrainedFrame.origin.y < minY) {
@@ -553,9 +558,49 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
     } else if (unconstrainedFrame.origin.y > maxY) {
         unconstrainedFrame.origin.y = maxY;
     }
+    
+    // Constrain X-axis within safe area
+    CGFloat minX = CGRectGetMinX(safeArea);
+    CGFloat maxX = CGRectGetMaxX(safeArea) - unconstrainedFrame.size.width;
+    if (unconstrainedFrame.origin.x < minX) {
+        unconstrainedFrame.origin.x = minX;
+    } else if (unconstrainedFrame.origin.x > maxX) {
+        unconstrainedFrame.origin.x = maxX;
+    }
 
     self.explorerToolbar.frame = unconstrainedFrame;
     NSUserDefaults.standardUserDefaults.flex_toolbarTopMargin = unconstrainedFrame.origin.y;
+}
+
+- (void)snapToolbarToNearestEdge {
+    CGRect safeArea = [self viewSafeArea];
+    CGRect toolbarFrame = self.explorerToolbar.frame;
+    
+    // Calculate toolbar center
+    CGFloat toolbarCenterX = CGRectGetMidX(toolbarFrame);
+    CGFloat safeAreaCenterX = CGRectGetMidX(safeArea);
+    
+    // Determine which edge is closer
+    CGFloat targetX;
+    if (toolbarCenterX < safeAreaCenterX) {
+        // Snap to left edge
+        targetX = CGRectGetMinX(safeArea);
+    } else {
+        // Snap to right edge
+        targetX = CGRectGetMaxX(safeArea) - CGRectGetWidth(toolbarFrame);
+    }
+    
+    // Animate to target position
+    [UIView animateWithDuration:0.3
+                          delay:0.0
+         usingSpringWithDamping:0.7
+          initialSpringVelocity:0.5
+                        options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+        CGRect newFrame = toolbarFrame;
+        newFrame.origin.x = targetX;
+        self.explorerToolbar.frame = newFrame;
+    } completion:nil];
 }
 
 - (void)handleToolbarHintTapGesture:(UITapGestureRecognizer *)tapGR {
