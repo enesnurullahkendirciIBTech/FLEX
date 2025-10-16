@@ -67,13 +67,21 @@ typedef UIViewController *(^FLEXNetworkDetailRowSelectionFuture)(void);
         name:kFLEXNetworkRecorderTransactionUpdatedNotification
         object:nil
     ];
+    
     self.toolbarItems = @[
         UIBarButtonItem.flex_flexibleSpace,
         [UIBarButtonItem
             flex_itemWithTitle:@"Copy curl"
             target:self
             action:@selector(copyButtonPressed:)
-        ]
+        ],
+        UIBarButtonItem.flex_flexibleSpace,
+        [UIBarButtonItem
+            flex_itemWithTitle:@"Share Request/Response"
+            target:self
+            action:@selector(shareButtonPressed:)
+        ],
+        UIBarButtonItem.flex_flexibleSpace
     ];
     
     [self.tableView registerClass:[FLEXMultilineTableViewCell class] forCellReuseIdentifier:kFLEXMultilineCell];
@@ -130,6 +138,88 @@ typedef UIViewController *(^FLEXNetworkDetailRowSelectionFuture)(void);
 
 - (void)copyButtonPressed:(id)sender {
     [UIPasteboard.generalPasteboard setString:[FLEXNetworkCurlLogger curlCommandString:_transaction.request]];
+}
+
+- (void)shareButtonPressed:(UIBarButtonItem *)sender {
+    NSMutableString *shareText = [NSMutableString string];
+    
+    // Request Information
+    [shareText appendString:@"========== REQUEST ==========\n\n"];
+    [shareText appendFormat:@"URL: %@\n", _transaction.request.URL.absoluteString];
+    [shareText appendFormat:@"Method: %@\n", _transaction.request.HTTPMethod];
+    
+    // Request Headers
+    if (_transaction.request.allHTTPHeaderFields.count > 0) {
+        [shareText appendString:@"\nRequest Headers:\n"];
+        [_transaction.request.allHTTPHeaderFields enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *value, BOOL *stop) {
+            [shareText appendFormat:@"%@: %@\n", key, value];
+        }];
+    }
+    
+    // Request Body
+    NSData *requestBodyData = _transaction.cachedRequestBody;
+    if (requestBodyData.length > 0) {
+        [shareText appendString:@"\nRequest Body:\n"];
+        NSString *requestBody = [[NSString alloc] initWithData:requestBodyData encoding:NSUTF8StringEncoding];
+        if (requestBody) {
+            [shareText appendString:requestBody];
+            [shareText appendString:@"\n"];
+        } else {
+            [shareText appendFormat:@"<Binary data: %lu bytes>\n", (unsigned long)requestBodyData.length];
+        }
+    }
+    
+    // Response Information
+    [shareText appendString:@"\n\n========== RESPONSE ==========\n\n"];
+    
+    NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)_transaction.response;
+    if ([httpResponse isKindOfClass:[NSHTTPURLResponse class]]) {
+        [shareText appendFormat:@"Status Code: %ld\n", (long)httpResponse.statusCode];
+        
+        // Response Headers
+        if (httpResponse.allHeaderFields.count > 0) {
+            [shareText appendString:@"\nResponse Headers:\n"];
+            [httpResponse.allHeaderFields enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *value, BOOL *stop) {
+                [shareText appendFormat:@"%@: %@\n", key, value];
+            }];
+        }
+    }
+    
+    // Response Body
+    NSData *responseBodyData = [FLEXNetworkRecorder.defaultRecorder cachedResponseBodyForTransaction:_transaction];
+    if (responseBodyData.length > 0) {
+        [shareText appendString:@"\nResponse Body:\n"];
+        NSString *responseBody = [[NSString alloc] initWithData:responseBodyData encoding:NSUTF8StringEncoding];
+        if (responseBody) {
+            [shareText appendString:responseBody];
+            [shareText appendString:@"\n"];
+        } else {
+            [shareText appendFormat:@"<Binary data: %lu bytes>\n", (unsigned long)responseBodyData.length];
+        }
+    }
+    
+    // Timing Information
+    [shareText appendString:@"\n========== TIMING ==========\n\n"];
+    [shareText appendFormat:@"Duration: %.3f seconds\n", _transaction.duration];
+    if (_transaction.startTime) {
+        NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+        formatter.dateStyle = NSDateFormatterMediumStyle;
+        formatter.timeStyle = NSDateFormatterMediumStyle;
+        [shareText appendFormat:@"Start Time: %@\n", [formatter stringFromDate:_transaction.startTime]];
+    }
+    
+    // Share
+    UIActivityViewController *activityVC = [[UIActivityViewController alloc]
+        initWithActivityItems:@[shareText]
+        applicationActivities:nil
+    ];
+    
+    // For iPad - set popover source
+    if (activityVC.popoverPresentationController) {
+        activityVC.popoverPresentationController.barButtonItem = sender;
+    }
+    
+    [self presentViewController:activityVC animated:YES completion:nil];
 }
 
 #pragma mark - Table view data source
