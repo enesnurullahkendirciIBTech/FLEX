@@ -438,8 +438,23 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
 }
 
 - (void)recentButtonTapped:(FLEXExplorerToolbarItem *)sender {
-    NSAssert(FLEXTabList.sharedList.activeTab, @"Must have active tab");
-    [self presentViewController:FLEXTabList.sharedList.activeTab animated:YES completion:nil];
+    // Open Network History
+    FLEXNetworkMITMViewController *networkVC = [FLEXNetworkMITMViewController new];
+    networkVC.title = @"Network History";
+    
+    // Add close button
+    networkVC.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+        initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+        target:self
+        action:@selector(dismissNetworkViewController)
+    ];
+    
+    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:networkVC];
+    [self presentViewController:nav animated:YES completion:nil];
+}
+
+- (void)dismissNetworkViewController {
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void)moveButtonTapped:(FLEXExplorerToolbarItem *)sender {
@@ -465,12 +480,8 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
     toolbar.moveItem.enabled = hasSelectedObject;
     toolbar.moveItem.selected = self.currentMode == FLEXExplorerModeMove;
     
-    // Recent only enabled when we have a last active tab
-    if (!self.presentedViewController) {
-        toolbar.recentItem.enabled = FLEXTabList.sharedList.activeTab != nil;
-    } else {
-        toolbar.recentItem.enabled = NO;
-    }
+    // Network button is always enabled
+    toolbar.recentItem.enabled = !self.presentedViewController;
 }
 
 

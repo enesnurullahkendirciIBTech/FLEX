@@ -61,7 +61,7 @@
         self.globalsItem   = [FLEXExplorerToolbarItem itemWithTitle:@"menu" image:FLEXResources.globalsIcon];
         self.hierarchyItem = [FLEXExplorerToolbarItem itemWithTitle:@"views" image:FLEXResources.hierarchyIcon];
         self.selectItem    = [FLEXExplorerToolbarItem itemWithTitle:@"select" image:FLEXResources.selectIcon];
-        self.recentItem    = [FLEXExplorerToolbarItem itemWithTitle:@"recent" image:FLEXResources.recentIcon];
+        self.recentItem    = [FLEXExplorerToolbarItem itemWithTitle:@"network" image:FLEXResources.recentIcon];
         self.moveItem      = [FLEXExplorerToolbarItem itemWithTitle:@"move" image:FLEXResources.moveIcon sibling:self.recentItem];
         self.closeItem     = [FLEXExplorerToolbarItem itemWithTitle:@"close" image:FLEXResources.closeIcon];
 

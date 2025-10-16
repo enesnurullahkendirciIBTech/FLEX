@@ -30,7 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// Its \c sibling is the \c lastTabItem
 @property (nonatomic, readonly) FLEXExplorerToolbarItem *moveItem;
 
-/// Toolbar item for presenting the currently active tab.
+/// Toolbar item for presenting the network history.
 @property (nonatomic, readonly) FLEXExplorerToolbarItem *recentItem;
 
 /// Toolbar item for presenting a screen with various tools for inspecting the app.
