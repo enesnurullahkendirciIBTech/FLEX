@@ -100,11 +100,13 @@
     const CGFloat dragHandleWidth = [[self class] dragHandleWidth];
     
     // Determine if toolbar is on the right side of the screen
+    // Use the right edge of the toolbar to determine position
     BOOL isOnRightSide = NO;
     if (self.superview) {
-        CGFloat toolbarCenterX = CGRectGetMidX(self.frame);
-        CGFloat superviewCenterX = CGRectGetMidX(self.superview.bounds);
-        isOnRightSide = toolbarCenterX > superviewCenterX;
+        CGFloat toolbarRightEdge = CGRectGetMaxX(self.frame);
+        CGFloat superviewRightEdge = CGRectGetMaxX(self.superview.bounds);
+        // If toolbar's right edge is close to the superview's right edge, it's on the right side
+        isOnRightSide = (superviewRightEdge - toolbarRightEdge) < 50.0; // 50 points threshold
     }
     
     // Drag Handle
@@ -125,22 +127,26 @@
         CGFloat width = FLEXFloor(totalItemsWidth / self.toolbarItems.count);
         
         if (isOnRightSide) {
-            // Right side: items go from right to left
+            // Right side: reverse order (close, recent, select, views, menu) then drag handle
+            NSArray *reversedItems = [[self.toolbarItems reverseObjectEnumerator] allObjects];
             CGFloat originX = CGRectGetMinX(safeArea);
-            for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
+            
+            for (FLEXExplorerToolbarItem *toolbarItem in reversedItems) {
                 toolbarItem.currentItem.hidden = NO;
                 toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
                 originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
             }
             
             // Adjust last item to end at drag handle
-            UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
+            FLEXExplorerToolbarItem *lastItem = (FLEXExplorerToolbarItem *)reversedItems.lastObject;
+            UIView *lastToolbarItem = lastItem.currentItem;
             CGRect lastToolbarItemFrame = lastToolbarItem.frame;
             lastToolbarItemFrame.size.width = dragHandleX - lastToolbarItemFrame.origin.x;
             lastToolbarItem.frame = lastToolbarItemFrame;
         } else {
-            // Left side: items go from left to right (original behavior)
+            // Left side: drag handle then normal order (menu, views, select, recent, close)
             CGFloat originX = CGRectGetMaxX(self.dragHandle.frame);
+            
             for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
                 toolbarItem.currentItem.hidden = NO;
                 toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
@@ -343,12 +349,12 @@
     // Calculate new size
     CGSize newSize = [self sizeThatFits:self.superview.bounds.size];
     
-    // Determine if toolbar is on the right side
+    // Determine if toolbar is on the right side using right edge
     BOOL isOnRightSide = NO;
     if (self.superview) {
-        CGFloat toolbarCenterX = CGRectGetMidX(self.frame);
-        CGFloat superviewCenterX = CGRectGetMidX(self.superview.bounds);
-        isOnRightSide = toolbarCenterX > superviewCenterX;
+        CGFloat toolbarRightEdge = CGRectGetMaxX(self.frame);
+        CGFloat superviewRightEdge = CGRectGetMaxX(self.superview.bounds);
+        isOnRightSide = (superviewRightEdge - toolbarRightEdge) < 50.0;
     }
     
     [UIView animateWithDuration:0.3
