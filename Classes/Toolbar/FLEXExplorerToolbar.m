@@ -46,8 +46,8 @@
         // Drag handle
         self.dragHandle = [UIView new];
         self.dragHandle.backgroundColor = UIColor.clearColor;
-        // Start with right chevron (collapsed state)
-        UIImage *chevronImage = [self chevronImageForExpandedState:NO];
+        // Start with right chevron (collapsed state, left side)
+        UIImage *chevronImage = [self chevronImageForExpandedState:NO isOnRightSide:NO];
         self.dragHandleImageView = [[UIImageView alloc] initWithImage:chevronImage];
         self.dragHandleImageView.tintColor = [FLEXColor.iconColor colorWithAlphaComponent:0.666];
         self.dragHandleImageView.contentMode = UIViewContentModeCenter;
@@ -62,8 +62,9 @@
         self.moveItem      = [FLEXExplorerToolbarItem itemWithTitle:@"move" image:FLEXResources.moveIcon sibling:self.recentItem];
         self.closeItem     = [FLEXExplorerToolbarItem itemWithTitle:@"close" image:FLEXResources.closeIcon];
         
-        // Start collapsed
+        // Start collapsed on the left edge
         self.expanded = NO;
+        self.isOnRightEdge = NO;
 
         // Selected view box //
         
@@ -99,18 +100,8 @@
     const CGFloat kToolbarItemHeight = [[self class] toolbarItemHeight];
     const CGFloat dragHandleWidth = [[self class] dragHandleWidth];
     
-    // Determine if toolbar is on the right side of the screen
-    // Use the right edge of the toolbar to determine position
-    BOOL isOnRightSide = NO;
-    if (self.superview) {
-        CGFloat toolbarRightEdge = CGRectGetMaxX(self.frame);
-        CGFloat superviewRightEdge = CGRectGetMaxX(self.superview.bounds);
-        // If toolbar's right edge is close to the superview's right edge, it's on the right side
-        isOnRightSide = (superviewRightEdge - toolbarRightEdge) < 50.0; // 50 points threshold
-    }
-    
     // Drag Handle
-    CGFloat dragHandleX = isOnRightSide ? (CGRectGetMaxX(safeArea) - dragHandleWidth) : CGRectGetMinX(safeArea);
+    CGFloat dragHandleX = self.isOnRightEdge ? (CGRectGetMaxX(safeArea) - dragHandleWidth) : CGRectGetMinX(safeArea);
     self.dragHandle.frame = CGRectMake(dragHandleX, CGRectGetMinY(safeArea), dragHandleWidth, kToolbarItemHeight);
     CGRect dragHandleImageFrame = self.dragHandleImageView.frame;
     dragHandleImageFrame.origin.x = FLEXFloor((self.dragHandle.frame.size.width - dragHandleImageFrame.size.width) / 2.0);
@@ -126,7 +117,7 @@
         CGFloat totalItemsWidth = CGRectGetWidth(safeArea) - dragHandleWidth;
         CGFloat width = FLEXFloor(totalItemsWidth / self.toolbarItems.count);
         
-        if (isOnRightSide) {
+        if (self.isOnRightEdge) {
             // Right side: reverse order (close, recent, select, views, menu) then drag handle
             NSArray *reversedItems = [[self.toolbarItems reverseObjectEnumerator] allObjects];
             CGFloat originX = CGRectGetMinX(safeArea);
@@ -168,7 +159,7 @@
 
     // Background should match the actual toolbar width
     CGFloat backgroundWidth = self.expanded ? CGRectGetWidth(self.bounds) : dragHandleWidth;
-    CGFloat backgroundX = isOnRightSide ? (CGRectGetWidth(self.bounds) - backgroundWidth) : 0;
+    CGFloat backgroundX = self.isOnRightEdge ? (CGRectGetWidth(self.bounds) - backgroundWidth) : 0;
     self.backgroundView.frame = CGRectMake(backgroundX, 0, backgroundWidth, kToolbarItemHeight);
     
     const CGFloat kSelectedViewColorDiameter = [[self class] selectedViewColorIndicatorDiameter];
@@ -181,7 +172,7 @@
     CGFloat descriptionWidth = self.expanded ? CGRectGetWidth(self.bounds) : backgroundWidth;
     descriptionContainerFrame.size.width = descriptionWidth;
     descriptionContainerFrame.size.height = kDescriptionContainerHeight;
-    descriptionContainerFrame.origin.x = isOnRightSide ? (CGRectGetWidth(self.bounds) - descriptionWidth) : CGRectGetMinX(self.bounds);
+    descriptionContainerFrame.origin.x = self.isOnRightEdge ? (CGRectGetWidth(self.bounds) - descriptionWidth) : CGRectGetMinX(self.bounds);
     descriptionContainerFrame.origin.y = CGRectGetMaxY(self.bounds) - kDescriptionContainerHeight;
     self.selectedViewDescriptionContainer.frame = descriptionContainerFrame;
 
@@ -189,7 +180,7 @@
     CGFloat safeAreaWidth = self.expanded ? CGRectGetWidth(safeArea) : MIN(CGRectGetWidth(safeArea), backgroundWidth);
     descriptionSafeAreaContainerFrame.size.width = safeAreaWidth;
     descriptionSafeAreaContainerFrame.size.height = kDescriptionContainerHeight;
-    descriptionSafeAreaContainerFrame.origin.x = isOnRightSide ? (CGRectGetMaxX(safeArea) - safeAreaWidth) : CGRectGetMinX(safeArea);
+    descriptionSafeAreaContainerFrame.origin.x = self.isOnRightEdge ? (CGRectGetMaxX(safeArea) - safeAreaWidth) : CGRectGetMinX(safeArea);
     descriptionSafeAreaContainerFrame.origin.y = CGRectGetMinY(safeArea);
     self.selectedViewDescriptionSafeAreaContainer.frame = descriptionSafeAreaContainerFrame;
 
@@ -316,10 +307,19 @@
     return safeArea;
 }
 
-- (UIImage *)chevronImageForExpandedState:(BOOL)expanded {
+- (UIImage *)chevronImageForExpandedState:(BOOL)expanded isOnRightSide:(BOOL)isOnRightSide {
     // Use SF Symbols if available (iOS 13+)
     if (@available(iOS 13.0, *)) {
-        NSString *symbolName = expanded ? @"chevron.left" : @"chevron.right";
+        NSString *symbolName;
+        
+        if (isOnRightSide) {
+            // Right side: reversed logic
+            symbolName = expanded ? @"chevron.right" : @"chevron.left";
+        } else {
+            // Left side: normal logic
+            symbolName = expanded ? @"chevron.left" : @"chevron.right";
+        }
+        
         UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:17 weight:UIImageSymbolWeightMedium];
         return [UIImage systemImageNamed:symbolName withConfiguration:config];
     } else {
@@ -329,7 +329,7 @@
 }
 
 - (void)updateDragHandleIcon {
-    UIImage *newImage = [self chevronImageForExpandedState:self.expanded];
+    UIImage *newImage = [self chevronImageForExpandedState:self.expanded isOnRightSide:self.isOnRightEdge];
     
     // Animate icon change with a flip transition
     [UIView transitionWithView:self.dragHandleImageView
@@ -349,14 +349,6 @@
     // Calculate new size
     CGSize newSize = [self sizeThatFits:self.superview.bounds.size];
     
-    // Determine if toolbar is on the right side using right edge
-    BOOL isOnRightSide = NO;
-    if (self.superview) {
-        CGFloat toolbarRightEdge = CGRectGetMaxX(self.frame);
-        CGFloat superviewRightEdge = CGRectGetMaxX(self.superview.bounds);
-        isOnRightSide = (superviewRightEdge - toolbarRightEdge) < 50.0;
-    }
-    
     [UIView animateWithDuration:0.3
                           delay:0.0
          usingSpringWithDamping:0.8
@@ -370,7 +362,7 @@
         newFrame.size.width = newSize.width;
         
         // If on right side, adjust origin.x to keep right edge fixed
-        if (isOnRightSide) {
+        if (self.isOnRightEdge) {
             newFrame.origin.x -= widthDifference;
         }
         

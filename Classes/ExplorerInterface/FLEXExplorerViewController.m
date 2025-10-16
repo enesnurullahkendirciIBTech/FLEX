@@ -582,13 +582,19 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
     
     // Determine which edge is closer
     CGFloat targetX;
+    BOOL willBeOnRightEdge;
     if (toolbarCenterX < safeAreaCenterX) {
         // Snap to left edge
         targetX = CGRectGetMinX(safeArea);
+        willBeOnRightEdge = NO;
     } else {
         // Snap to right edge
         targetX = CGRectGetMaxX(safeArea) - CGRectGetWidth(toolbarFrame);
+        willBeOnRightEdge = YES;
     }
+    
+    // Update toolbar position property
+    self.explorerToolbar.isOnRightEdge = willBeOnRightEdge;
     
     // Animate to target position
     [UIView animateWithDuration:0.3
@@ -600,7 +606,10 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
         CGRect newFrame = toolbarFrame;
         newFrame.origin.x = targetX;
         self.explorerToolbar.frame = newFrame;
-    } completion:nil];
+    } completion:^(BOOL finished) {
+        // Update drag handle icon based on new position
+        [self.explorerToolbar updateDragHandleIcon];
+    }];
 }
 
 - (void)handleToolbarHintTapGesture:(UITapGestureRecognizer *)tapGR {

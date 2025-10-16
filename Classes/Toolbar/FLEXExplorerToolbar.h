@@ -56,8 +56,14 @@ NS_ASSUME_NONNULL_BEGIN
 /// Whether the toolbar is expanded to show all items
 @property (nonatomic) BOOL expanded;
 
+/// Whether the toolbar is positioned on the right edge of the screen
+@property (nonatomic) BOOL isOnRightEdge;
+
 /// Toggles the toolbar between collapsed (single item) and expanded (all items) states
 - (void)toggleExpansion;
+
+/// Updates the drag handle icon based on the current expansion state and position
+- (void)updateDragHandleIcon;
 
 @end
 
