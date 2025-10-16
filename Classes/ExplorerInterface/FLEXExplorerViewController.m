@@ -559,21 +559,9 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
 }
 
 - (void)handleToolbarHintTapGesture:(UITapGestureRecognizer *)tapGR {
-    // Bounce the toolbar to indicate that it is draggable.
-    // TODO: make it bouncier.
+    // Toggle toolbar expansion
     if (tapGR.state == UIGestureRecognizerStateRecognized) {
-        CGRect originalToolbarFrame = self.explorerToolbar.frame;
-        const NSTimeInterval kHalfwayDuration = 0.2;
-        const CGFloat kVerticalOffset = 30.0;
-        [UIView animateWithDuration:kHalfwayDuration delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-            CGRect newToolbarFrame = self.explorerToolbar.frame;
-            newToolbarFrame.origin.y += kVerticalOffset;
-            self.explorerToolbar.frame = newToolbarFrame;
-        } completion:^(BOOL finished) {
-            [UIView animateWithDuration:kHalfwayDuration delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-                self.explorerToolbar.frame = originalToolbarFrame;
-            } completion:nil];
-        }];
+        [self.explorerToolbar toggleExpansion];
     }
 }
 

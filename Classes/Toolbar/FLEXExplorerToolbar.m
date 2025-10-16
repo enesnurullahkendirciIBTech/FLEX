@@ -46,8 +46,11 @@
         // Drag handle
         self.dragHandle = [UIView new];
         self.dragHandle.backgroundColor = UIColor.clearColor;
-        self.dragHandleImageView = [[UIImageView alloc] initWithImage:FLEXResources.dragHandle];
+        // Start with right chevron (collapsed state)
+        UIImage *chevronImage = [self chevronImageForExpandedState:NO];
+        self.dragHandleImageView = [[UIImageView alloc] initWithImage:chevronImage];
         self.dragHandleImageView.tintColor = [FLEXColor.iconColor colorWithAlphaComponent:0.666];
+        self.dragHandleImageView.contentMode = UIViewContentModeCenter;
         [self.dragHandle addSubview:self.dragHandleImageView];
         [self addSubview:self.dragHandle];
         
@@ -58,6 +61,9 @@
         self.recentItem    = [FLEXExplorerToolbarItem itemWithTitle:@"recent" image:FLEXResources.recentIcon];
         self.moveItem      = [FLEXExplorerToolbarItem itemWithTitle:@"move" image:FLEXResources.moveIcon sibling:self.recentItem];
         self.closeItem     = [FLEXExplorerToolbarItem itemWithTitle:@"close" image:FLEXResources.closeIcon];
+        
+        // Start collapsed
+        self.expanded = NO;
 
         // Selected view box //
         
@@ -104,19 +110,31 @@
     CGFloat originX = CGRectGetMaxX(self.dragHandle.frame);
     CGFloat originY = CGRectGetMinY(safeArea);
     CGFloat height = kToolbarItemHeight;
-    CGFloat width = FLEXFloor((CGRectGetWidth(safeArea) - CGRectGetWidth(self.dragHandle.frame)) / self.toolbarItems.count);
-    for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
-        toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
-        originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
-    }
     
-    // Make sure the last toolbar item goes to the edge to account for any accumulated rounding effects.
-    UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
-    CGRect lastToolbarItemFrame = lastToolbarItem.frame;
-    lastToolbarItemFrame.size.width = CGRectGetMaxX(safeArea) - lastToolbarItemFrame.origin.x;
-    lastToolbarItem.frame = lastToolbarItemFrame;
+    if (self.expanded) {
+        // Show all items equally distributed
+        CGFloat width = FLEXFloor((CGRectGetWidth(safeArea) - CGRectGetWidth(self.dragHandle.frame)) / self.toolbarItems.count);
+        for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
+            toolbarItem.currentItem.hidden = NO;
+            toolbarItem.currentItem.frame = CGRectMake(originX, originY, width, height);
+            originX = CGRectGetMaxX(toolbarItem.currentItem.frame);
+        }
+        
+        // Make sure the last toolbar item goes to the edge to account for any accumulated rounding effects.
+        UIView *lastToolbarItem = self.toolbarItems.lastObject.currentItem;
+        CGRect lastToolbarItemFrame = lastToolbarItem.frame;
+        lastToolbarItemFrame.size.width = CGRectGetMaxX(safeArea) - lastToolbarItemFrame.origin.x;
+        lastToolbarItem.frame = lastToolbarItemFrame;
+    } else {
+        // Collapsed state - hide all items, only show drag handle
+        for (FLEXExplorerToolbarItem *toolbarItem in self.toolbarItems) {
+            toolbarItem.currentItem.hidden = YES;
+        }
+    }
 
-    self.backgroundView.frame = CGRectMake(0, 0, CGRectGetWidth(self.bounds), kToolbarItemHeight);
+    // Background should match the actual toolbar width
+    CGFloat backgroundWidth = self.expanded ? CGRectGetWidth(self.bounds) : CGRectGetWidth(self.dragHandle.frame);
+    self.backgroundView.frame = CGRectMake(0, 0, backgroundWidth, kToolbarItemHeight);
     
     const CGFloat kSelectedViewColorDiameter = [[self class] selectedViewColorIndicatorDiameter];
     const CGFloat kDescriptionLabelHeight = [[self class] descriptionLabelHeight];
@@ -125,14 +143,15 @@
     const CGFloat kDescriptionContainerHeight = [[self class] descriptionContainerHeight];
     
     CGRect descriptionContainerFrame = CGRectZero;
-    descriptionContainerFrame.size.width = CGRectGetWidth(self.bounds);
+    descriptionContainerFrame.size.width = self.expanded ? CGRectGetWidth(self.bounds) : backgroundWidth;
     descriptionContainerFrame.size.height = kDescriptionContainerHeight;
     descriptionContainerFrame.origin.x = CGRectGetMinX(self.bounds);
     descriptionContainerFrame.origin.y = CGRectGetMaxY(self.bounds) - kDescriptionContainerHeight;
     self.selectedViewDescriptionContainer.frame = descriptionContainerFrame;
 
     CGRect descriptionSafeAreaContainerFrame = CGRectZero;
-    descriptionSafeAreaContainerFrame.size.width = CGRectGetWidth(safeArea);
+    CGFloat safeAreaWidth = self.expanded ? CGRectGetWidth(safeArea) : MIN(CGRectGetWidth(safeArea), backgroundWidth);
+    descriptionSafeAreaContainerFrame.size.width = safeAreaWidth;
     descriptionSafeAreaContainerFrame.size.height = kDescriptionContainerHeight;
     descriptionSafeAreaContainerFrame.origin.x = CGRectGetMinX(safeArea);
     descriptionSafeAreaContainerFrame.origin.y = CGRectGetMinY(safeArea);
@@ -241,7 +260,15 @@
     CGFloat height = 0.0;
     height += [[self class] toolbarItemHeight];
     height += [[self class] descriptionContainerHeight];
-    return CGSizeMake(size.width, height);
+    
+    CGFloat width = size.width;
+    if (!self.expanded) {
+        // When collapsed, only show drag handle
+        CGFloat collapsedWidth = [[self class] dragHandleWidth];
+        width = MIN(collapsedWidth, size.width);
+    }
+    
+    return CGSizeMake(width, height);
 }
 
 - (CGRect)safeArea {
@@ -251,6 +278,55 @@
     }
 
     return safeArea;
+}
+
+- (UIImage *)chevronImageForExpandedState:(BOOL)expanded {
+    // Use SF Symbols if available (iOS 13+)
+    if (@available(iOS 13.0, *)) {
+        NSString *symbolName = expanded ? @"chevron.left" : @"chevron.right";
+        UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:17 weight:UIImageSymbolWeightMedium];
+        return [UIImage systemImageNamed:symbolName withConfiguration:config];
+    } else {
+        // Fallback for iOS 12 and earlier - use the original drag handle
+        return FLEXResources.dragHandle;
+    }
+}
+
+- (void)updateDragHandleIcon {
+    UIImage *newImage = [self chevronImageForExpandedState:self.expanded];
+    
+    // Animate icon change with a flip transition
+    [UIView transitionWithView:self.dragHandleImageView
+                      duration:0.3
+                       options:UIViewAnimationOptionTransitionFlipFromLeft
+                    animations:^{
+        self.dragHandleImageView.image = newImage;
+    } completion:nil];
+}
+
+- (void)toggleExpansion {
+    self.expanded = !self.expanded;
+    
+    // Update drag handle icon
+    [self updateDragHandleIcon];
+    
+    // Calculate new size
+    CGSize newSize = [self sizeThatFits:self.superview.bounds.size];
+    
+    [UIView animateWithDuration:0.3
+                          delay:0.0
+         usingSpringWithDamping:0.8
+          initialSpringVelocity:0.5
+                        options:UIViewAnimationOptionCurveEaseInOut
+                     animations:^{
+        // Update frame with new width
+        CGRect newFrame = self.frame;
+        newFrame.size.width = newSize.width;
+        self.frame = newFrame;
+        
+        [self setNeedsLayout];
+        [self layoutIfNeeded];
+    } completion:nil];
 }
 
 @end

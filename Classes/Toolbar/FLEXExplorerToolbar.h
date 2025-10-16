@@ -53,6 +53,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// Users of the toolbar can attach a tap gesture recognizer to show additional details.
 @property (nonatomic, readonly) UIView *selectedViewDescriptionContainer;
 
+/// Whether the toolbar is expanded to show all items
+@property (nonatomic) BOOL expanded;
+
+/// Toggles the toolbar between collapsed (single item) and expanded (all items) states
+- (void)toggleExpansion;
+
 @end
 
 NS_ASSUME_NONNULL_END
