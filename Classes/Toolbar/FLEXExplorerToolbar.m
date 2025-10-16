@@ -38,6 +38,10 @@
 - (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        // Initialize state
+        self.expanded = NO;
+        self.isOnRightEdge = NO;
+        
         // Background
         self.backgroundView = [UIView new];
         self.backgroundView.backgroundColor = [FLEXColor secondaryBackgroundColorWithAlpha:0.95];
@@ -46,8 +50,7 @@
         // Drag handle
         self.dragHandle = [UIView new];
         self.dragHandle.backgroundColor = UIColor.clearColor;
-        // Start with right chevron (collapsed state, left side)
-        UIImage *chevronImage = [self chevronImageForExpandedState:NO isOnRightSide:NO];
+        UIImage *chevronImage = [self chevronImageForExpandedState:NO];
         self.dragHandleImageView = [[UIImageView alloc] initWithImage:chevronImage];
         self.dragHandleImageView.tintColor = [FLEXColor.iconColor colorWithAlphaComponent:0.666];
         self.dragHandleImageView.contentMode = UIViewContentModeCenter;
@@ -61,10 +64,6 @@
         self.recentItem    = [FLEXExplorerToolbarItem itemWithTitle:@"recent" image:FLEXResources.recentIcon];
         self.moveItem      = [FLEXExplorerToolbarItem itemWithTitle:@"move" image:FLEXResources.moveIcon sibling:self.recentItem];
         self.closeItem     = [FLEXExplorerToolbarItem itemWithTitle:@"close" image:FLEXResources.closeIcon];
-        
-        // Start collapsed on the left edge
-        self.expanded = NO;
-        self.isOnRightEdge = NO;
 
         // Selected view box //
         
@@ -307,16 +306,16 @@
     return safeArea;
 }
 
-- (UIImage *)chevronImageForExpandedState:(BOOL)expanded isOnRightSide:(BOOL)isOnRightSide {
+- (UIImage *)chevronImageForExpandedState:(BOOL)expanded {
     // Use SF Symbols if available (iOS 13+)
     if (@available(iOS 13.0, *)) {
         NSString *symbolName;
         
-        if (isOnRightSide) {
-            // Right side: reversed logic
+        if (self.isOnRightEdge) {
+            // Right edge: reversed logic
             symbolName = expanded ? @"chevron.right" : @"chevron.left";
         } else {
-            // Left side: normal logic
+            // Left edge: normal logic
             symbolName = expanded ? @"chevron.left" : @"chevron.right";
         }
         
@@ -329,7 +328,7 @@
 }
 
 - (void)updateDragHandleIcon {
-    UIImage *newImage = [self chevronImageForExpandedState:self.expanded isOnRightSide:self.isOnRightEdge];
+    UIImage *newImage = [self chevronImageForExpandedState:self.expanded];
     
     // Animate icon change with a flip transition
     [UIView transitionWithView:self.dragHandleImageView
