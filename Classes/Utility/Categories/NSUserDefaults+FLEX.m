@@ -58,7 +58,7 @@ NSString * const kFLEXDefaultsRegisterJSONExplorerKey = @"com.flipboard.FLEX.vie
         return [self doubleForKey:kFLEXDefaultsToolbarTopMarginKey];
     }
     
-    return 100;
+    return 200;
 }
 
 - (void)setFlex_toolbarTopMargin:(double)margin {
