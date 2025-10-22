@@ -21,6 +21,7 @@
 #import "FLEXWindowManagerController.h"
 #import "FLEXViewControllersViewController.h"
 #import "NSUserDefaults+FLEX.h"
+#import "FLEXManager+Extensibility.h"
 
 typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
     FLEXExplorerModeDefault,
@@ -406,6 +407,8 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
 
 - (void)setupToolbarActions {
     FLEXExplorerToolbar *toolbar = self.explorerToolbar;
+    
+    // Setup default actions first
     NSDictionary<NSString *, FLEXExplorerToolbarItem *> *actionsToItems = @{
         NSStringFromSelector(@selector(selectButtonTapped:)):        toolbar.selectItem,
         NSStringFromSelector(@selector(hierarchyButtonTapped:)):     toolbar.hierarchyItem,
@@ -418,6 +421,10 @@ typedef NS_ENUM(NSUInteger, FLEXExplorerMode) {
     [actionsToItems enumerateKeysAndObjectsUsingBlock:^(NSString *sel, FLEXExplorerToolbarItem *item, BOOL *stop) {
         [item addTarget:self action:NSSelectorFromString(sel) forControlEvents:UIControlEventTouchUpInside];
     }];
+    
+    // Apply any custom actions that were set before toolbar was initialized
+    NSLog(@"🔍 [FLEXExplorerVC] Applying custom toolbar actions...");
+    [FLEXManager applyCustomActionsToToolbar:toolbar];
 }
 
 - (void)selectButtonTapped:(FLEXExplorerToolbarItem *)sender {

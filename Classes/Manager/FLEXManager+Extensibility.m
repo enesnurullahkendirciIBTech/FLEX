@@ -18,12 +18,187 @@
 #import "FLEXArgumentInputStructView.h"
 #import "FLEXExplorerToolbarItem.h"
 #import "FLEXUtility.h"
+#import <objc/runtime.h>
 
 @interface FLEXManager (ExtensibilityPrivate)
 @property (nonatomic, readonly) UIViewController *topViewController;
 @end
 
+// Private storage for custom toolbar actions
+@interface FLEXToolbarActionStorage : NSObject
+@property (nonatomic, weak) id target;
+@property (nonatomic) SEL action;
+@end
+
+@implementation FLEXToolbarActionStorage
+@end
+
+// Private storage for toolbar item customization
+@interface FLEXToolbarItemCustomization : NSObject
+@property (nonatomic, copy) NSString *title;
+@property (nonatomic, strong) UIImage *image;
+@end
+
+@implementation FLEXToolbarItemCustomization
+@end
+
 @implementation FLEXManager (Extensibility)
+
+// Associated object keys for storing custom actions
+static char kGlobalsActionKey;
+static char kHierarchyActionKey;
+static char kSelectActionKey;
+static char kRecentActionKey;
+static char kMoveActionKey;
+static char kCloseActionKey;
+
+// Associated object keys for storing customizations
+static char kGlobalsCustomizationKey;
+static char kHierarchyCustomizationKey;
+static char kSelectCustomizationKey;
+static char kRecentCustomizationKey;
+static char kMoveCustomizationKey;
+static char kCloseCustomizationKey;
+
+#pragma mark - Custom Action Storage
+
+- (void)setCustomActionForKey:(const void *)key target:(id)target action:(SEL)action {
+    if (target && action) {
+        FLEXToolbarActionStorage *storage = [FLEXToolbarActionStorage new];
+        storage.target = target;
+        storage.action = action;
+        objc_setAssociatedObject(self, key, storage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    } else {
+        objc_setAssociatedObject(self, key, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+}
+
+- (FLEXToolbarActionStorage *)customActionForKey:(const void *)key {
+    return objc_getAssociatedObject(self, key);
+}
+
+- (void)setCustomizationForKey:(const void *)key title:(NSString *)title image:(UIImage *)image {
+    FLEXToolbarItemCustomization *customization = objc_getAssociatedObject(self, key);
+    if (!customization) {
+        customization = [FLEXToolbarItemCustomization new];
+        objc_setAssociatedObject(self, key, customization, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    
+    if (title) {
+        customization.title = title;
+    }
+    if (image) {
+        customization.image = image;
+    }
+}
+
+- (FLEXToolbarItemCustomization *)customizationForKey:(const void *)key {
+    return objc_getAssociatedObject(self, key);
+}
+
+#pragma mark - Apply Customizations & Actions (Called from FLEXExplorerViewController)
+
++ (void)applyCustomActionsToToolbar:(FLEXExplorerToolbar *)toolbar {
+    FLEXManager *manager = self.sharedManager;
+    
+    // Apply customizations (title/image) first
+    FLEXToolbarItemCustomization *globalsCustomization = [manager customizationForKey:&kGlobalsCustomizationKey];
+    if (globalsCustomization) {
+        if (globalsCustomization.title) {
+            [toolbar.globalsItem setItemTitle:globalsCustomization.title];
+        }
+        if (globalsCustomization.image) {
+            [toolbar.globalsItem setItemImage:globalsCustomization.image];
+        }
+    }
+    
+    FLEXToolbarItemCustomization *hierarchyCustomization = [manager customizationForKey:&kHierarchyCustomizationKey];
+    if (hierarchyCustomization) {
+        if (hierarchyCustomization.title) {
+            [toolbar.hierarchyItem setItemTitle:hierarchyCustomization.title];
+        }
+        if (hierarchyCustomization.image) {
+            [toolbar.hierarchyItem setItemImage:hierarchyCustomization.image];
+        }
+    }
+    
+    FLEXToolbarItemCustomization *selectCustomization = [manager customizationForKey:&kSelectCustomizationKey];
+    if (selectCustomization) {
+        if (selectCustomization.title) {
+            [toolbar.selectItem setItemTitle:selectCustomization.title];
+        }
+        if (selectCustomization.image) {
+            [toolbar.selectItem setItemImage:selectCustomization.image];
+        }
+    }
+    
+    FLEXToolbarItemCustomization *recentCustomization = [manager customizationForKey:&kRecentCustomizationKey];
+    if (recentCustomization) {
+        if (recentCustomization.title) {
+            [toolbar.recentItem setItemTitle:recentCustomization.title];
+        }
+        if (recentCustomization.image) {
+            [toolbar.recentItem setItemImage:recentCustomization.image];
+        }
+    }
+    
+    FLEXToolbarItemCustomization *moveCustomization = [manager customizationForKey:&kMoveCustomizationKey];
+    if (moveCustomization) {
+        if (moveCustomization.title) {
+            [toolbar.moveItem setItemTitle:moveCustomization.title];
+        }
+        if (moveCustomization.image) {
+            [toolbar.moveItem setItemImage:moveCustomization.image];
+        }
+    }
+    
+    FLEXToolbarItemCustomization *closeCustomization = [manager customizationForKey:&kCloseCustomizationKey];
+    if (closeCustomization) {
+        if (closeCustomization.title) {
+            [toolbar.closeItem setItemTitle:closeCustomization.title];
+        }
+        if (closeCustomization.image) {
+            [toolbar.closeItem setItemImage:closeCustomization.image];
+        }
+    }
+    
+    // Apply custom actions
+    FLEXToolbarActionStorage *globalsAction = [manager customActionForKey:&kGlobalsActionKey];
+    if (globalsAction && globalsAction.target) {
+        [toolbar.globalsItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.globalsItem addTarget:globalsAction.target action:globalsAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+    
+    FLEXToolbarActionStorage *hierarchyAction = [manager customActionForKey:&kHierarchyActionKey];
+    if (hierarchyAction && hierarchyAction.target) {
+        [toolbar.hierarchyItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.hierarchyItem addTarget:hierarchyAction.target action:hierarchyAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+    
+    FLEXToolbarActionStorage *selectAction = [manager customActionForKey:&kSelectActionKey];
+    if (selectAction && selectAction.target) {
+        [toolbar.selectItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.selectItem addTarget:selectAction.target action:selectAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+    
+    FLEXToolbarActionStorage *recentAction = [manager customActionForKey:&kRecentActionKey];
+    if (recentAction && recentAction.target) {
+        [toolbar.recentItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.recentItem addTarget:recentAction.target action:recentAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+    
+    FLEXToolbarActionStorage *moveAction = [manager customActionForKey:&kMoveActionKey];
+    if (moveAction && moveAction.target) {
+        [toolbar.moveItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.moveItem addTarget:moveAction.target action:moveAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+    
+    FLEXToolbarActionStorage *closeAction = [manager customActionForKey:&kCloseActionKey];
+    if (closeAction && closeAction.target) {
+        [toolbar.closeItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+        [toolbar.closeItem addTarget:closeAction.target action:closeAction.action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
 
 #pragma mark - Globals Screen Entries
 
@@ -81,91 +256,128 @@
 
 - (void)customizeGlobalsItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.globalsItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.globalsItem setItemImage:image];
+    [self setCustomizationForKey:&kGlobalsCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)customizeHierarchyItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.hierarchyItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.hierarchyItem setItemImage:image];
+    [self setCustomizationForKey:&kHierarchyCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)customizeSelectItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.selectItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.selectItem setItemImage:image];
+    [self setCustomizationForKey:&kSelectCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)customizeRecentItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.recentItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.recentItem setItemImage:image];
+    [self setCustomizationForKey:&kRecentCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)customizeMoveItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.moveItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.moveItem setItemImage:image];
+    [self setCustomizationForKey:&kMoveCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)customizeCloseItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
     NSParameterAssert(title);
-    [self.toolbar.closeItem setItemTitle:title];
-    if (image) {
-        [self.toolbar.closeItem setItemImage:image];
+    [self setCustomizationForKey:&kCloseCustomizationKey title:title image:image];
+    
+    // If toolbar is already initialized, reapply all customizations
+    if (self.toolbar) {
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setGlobalsItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.globalsItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.globalsItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kGlobalsActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored globals action - target: %@, action: %@", target, NSStringFromSelector(action));
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setHierarchyItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.hierarchyItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.hierarchyItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kHierarchyActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored hierarchy action - target: %@, action: %@", target, NSStringFromSelector(action));
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setSelectItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.selectItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.selectItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kSelectActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored select action - target: %@, action: %@, responds: %d", 
+          target, NSStringFromSelector(action), [target respondsToSelector:action]);
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setRecentItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.recentItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.recentItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kRecentActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored recent action - target: %@, action: %@", target, NSStringFromSelector(action));
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setMoveItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.moveItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.moveItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kMoveActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored move action - target: %@, action: %@", target, NSStringFromSelector(action));
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 
 - (void)setCloseItemTarget:(nullable id)target action:(nullable SEL)action {
-    [self.toolbar.closeItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    if (target && action) {
-        [self.toolbar.closeItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    [self setCustomActionForKey:&kCloseActionKey target:target action:action];
+    NSLog(@"🔍 [FLEXManager] Stored close action - target: %@, action: %@", target, NSStringFromSelector(action));
+    
+    // If toolbar is already initialized, reapply all custom actions
+    if (self.toolbar) {
+        NSLog(@"🔍 [FLEXManager] Toolbar exists, reapplying custom actions");
+        [FLEXManager applyCustomActionsToToolbar:self.toolbar];
     }
 }
 

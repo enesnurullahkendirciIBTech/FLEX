@@ -9,9 +9,17 @@
 #import "FLEXManager.h"
 #import "FLEXGlobalsEntry.h"
 
+@class FLEXExplorerToolbar;
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface FLEXManager (Extensibility)
+
+#pragma mark - Internal (Do not call directly)
+
+/// Internal method to apply custom toolbar actions. Called automatically from FLEXExplorerViewController.
+/// @note Do not call this method directly. It is only for internal use.
++ (void)applyCustomActionsToToolbar:(FLEXExplorerToolbar *)toolbar;
 
 #pragma mark - Globals Screen Entries
 
