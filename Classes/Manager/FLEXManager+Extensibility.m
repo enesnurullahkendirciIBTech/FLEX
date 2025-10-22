@@ -16,6 +16,7 @@
 #import "FLEXKeyboardHelpViewController.h"
 #import "FLEXFileBrowserController.h"
 #import "FLEXArgumentInputStructView.h"
+#import "FLEXExplorerToolbarItem.h"
 #import "FLEXUtility.h"
 
 @interface FLEXManager (ExtensibilityPrivate)
@@ -73,6 +74,99 @@
 
 - (void)clearGlobalEntries {
     [self.userGlobalEntries removeAllObjects];
+}
+
+
+#pragma mark - Toolbar Customization
+
+- (void)customizeGlobalsItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.globalsItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.globalsItem setItemImage:image];
+    }
+}
+
+- (void)customizeHierarchyItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.hierarchyItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.hierarchyItem setItemImage:image];
+    }
+}
+
+- (void)customizeSelectItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.selectItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.selectItem setItemImage:image];
+    }
+}
+
+- (void)customizeRecentItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.recentItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.recentItem setItemImage:image];
+    }
+}
+
+- (void)customizeMoveItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.moveItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.moveItem setItemImage:image];
+    }
+}
+
+- (void)customizeCloseItemWithTitle:(NSString *)title image:(nullable UIImage *)image {
+    NSParameterAssert(title);
+    [self.toolbar.closeItem setItemTitle:title];
+    if (image) {
+        [self.toolbar.closeItem setItemImage:image];
+    }
+}
+
+- (void)setGlobalsItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.globalsItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.globalsItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
+
+- (void)setHierarchyItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.hierarchyItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.hierarchyItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
+
+- (void)setSelectItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.selectItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.selectItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
+
+- (void)setRecentItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.recentItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.recentItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
+
+- (void)setMoveItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.moveItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.moveItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
+}
+
+- (void)setCloseItemTarget:(nullable id)target action:(nullable SEL)action {
+    [self.toolbar.closeItem removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
+    if (target && action) {
+        [self.toolbar.closeItem addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
+    }
 }
 
 

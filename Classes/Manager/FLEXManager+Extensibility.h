@@ -52,6 +52,68 @@ NS_ASSUME_NONNULL_BEGIN
 /// Removes all registered global entries.
 - (void)clearGlobalEntries;
 
+#pragma mark - Toolbar Customization
+
+/// Customize the title and image of the globals toolbar item.
+/// @param title The new title for the button (e.g., @"menu", @"settings")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeGlobalsItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Customize the title and image of the hierarchy toolbar item.
+/// @param title The new title for the button (e.g., @"views", @"hierarchy")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeHierarchyItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Customize the title and image of the select toolbar item.
+/// @param title The new title for the button (e.g., @"select", @"pick")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeSelectItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Customize the title and image of the recent (network) toolbar item.
+/// @param title The new title for the button (e.g., @"network", @"requests")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeRecentItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Customize the title and image of the move toolbar item.
+/// @param title The new title for the button (e.g., @"move", @"drag")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeMoveItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Customize the title and image of the close toolbar item.
+/// @param title The new title for the button (e.g., @"close", @"exit")
+/// @param image The new image for the button. Can be nil to keep the current image.
+- (void)customizeCloseItemWithTitle:(NSString *)title image:(nullable UIImage *)image;
+
+/// Set a custom action for the globals toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setGlobalsItemTarget:(nullable id)target action:(nullable SEL)action;
+
+/// Set a custom action for the hierarchy toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setHierarchyItemTarget:(nullable id)target action:(nullable SEL)action;
+
+/// Set a custom action for the select toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setSelectItemTarget:(nullable id)target action:(nullable SEL)action;
+
+/// Set a custom action for the recent (network) toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setRecentItemTarget:(nullable id)target action:(nullable SEL)action;
+
+/// Set a custom action for the move toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setMoveItemTarget:(nullable id)target action:(nullable SEL)action;
+
+/// Set a custom action for the close toolbar item.
+/// @param target The target object for the action. Can be nil to remove the action.
+/// @param action The selector to call when the button is tapped. Can be NULL to remove the action.
+- (void)setCloseItemTarget:(nullable id)target action:(nullable SEL)action;
+
 #pragma mark - Editing
 
 /// Enable displaying ivar names for custom struct types

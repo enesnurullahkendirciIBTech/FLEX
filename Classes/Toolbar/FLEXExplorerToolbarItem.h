@@ -39,6 +39,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// if this item has a sibling and this item is disabled, otherwise this item.
 @property (nonatomic, readonly) FLEXExplorerToolbarItem *currentItem;
 
+/// Updates the toolbar item's title
+- (void)setItemTitle:(NSString *)title;
+
+/// Updates the toolbar item's image
+- (void)setItemImage:(UIImage *)image;
+
 @end
 
 NS_ASSUME_NONNULL_END

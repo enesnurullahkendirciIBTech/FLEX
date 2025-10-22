@@ -55,6 +55,18 @@
     return self;
 }
 
+- (void)setItemTitle:(NSString *)title {
+    NSParameterAssert(title);
+    self.title = title;
+    [self setTitle:title forState:UIControlStateNormal];
+}
+
+- (void)setItemImage:(UIImage *)image {
+    NSParameterAssert(image);
+    self.image = image;
+    [self setImage:image forState:UIControlStateNormal];
+}
+
 
 #pragma mark - Display Defaults
 
